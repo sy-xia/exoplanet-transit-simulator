@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exoplanet Transit Simulator</title>
+
+<link rel="stylesheet" href="foundation/kl-unl.css">
+<link rel="stylesheet" href="styles/styles.css?v=13">
+
+<!--
+  This sim contains no equations — only unit labels (M_jup, R_jup, M_sun, AU, °),
+  which the original Flash rendered as plain text with <sub> tags. They are
+  reproduced the same way, in the page's sans-serif font, so they stay consistent
+  with all other UI text. MathJax would force its own font and cannot match the
+  page font, so it is not loaded. The foundation's kl-unl.js equation helper is
+  still available for any future equation need.
+-->
+<script src="foundation/kl-unl.js"></script>
+<script src="foundation/kl-unl-masthead.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <kl-unl-masthead sim-id="transitsimulator" json-url="foundation/contents.json"></kl-unl-masthead>
+
+  <main class="app-layout sim-layout">
+
+    <!-- ============ LEFT COLUMN: transit view + presets ============ -->
+    <div class="app-layout__left">
+
+      <section class="panel sim-panel sim-vis-panel" aria-labelledby="vis-heading">
+        <h2 id="vis-heading" class="sr-only">Transit View</h2>
+        <div class="panel__canvas-wrap sim-vis-wrap">
+          <canvas id="vis-canvas" width="350" height="350"></canvas>
+          <!-- Visually hidden, continuously updated description of the diagram -->
+          <p id="vis-desc" class="sr-only" aria-hidden="false"></p>
+        </div>
+      </section>
+
+      <section class="panel sim-panel" aria-labelledby="presets-heading">
+        <h2 id="presets-heading" class="panel__heading">Presets</h2>
+        <div class="control-fieldset sim-presets-row">
+          <label for="preset-select" class="sr-only">Preset system</label>
+          <select id="preset-select" class="sim-select"></select>
+          <button id="set-preset-button" type="button" class="button">set</button>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ============ RIGHT COLUMN: lightcurve ============ -->
+    <div class="app-layout__right">
+      <section class="panel sim-panel" aria-labelledby="lc-heading">
+        <h2 id="lc-heading" class="sr-only">Lightcurve</h2>
+
+        <div class="sim-lc-body">
+
+          <!-- Plot laid out as a grid so the eclipse-duration arrow and the time
+               caption sit in the same column as the canvas and stay aligned with
+               the plotted eclipse region (15%-85% of the canvas width). -->
+          <div class="sim-plot-grid">
+            <!-- y-axis title lives in HTML so it zooms and is readable -->
+            <div class="sim-plot-ylabel" id="lc-ylabel" aria-hidden="true">Normalized&nbsp;Flux</div>
+
+            <!-- HTML overlay for y tick labels (kept out of the canvas so they zoom) -->
+            <div class="sim-plot-yticks" id="lc-yticks" aria-hidden="true"></div>
+
+            <div class="sim-plot-wrap" id="lc-plot-wrap">
+              <canvas id="lc-canvas" width="400" height="220"></canvas>
+              <!-- Focusable keyboard proxy for the draggable phase cursor -->
+              <div id="lc-cursor-proxy"
+                   role="slider"
+                   tabindex="0"
+                   aria-label="Lightcurve phase cursor"
+                   aria-valuemin="0" aria-valuemax="1" aria-valuenow="0.5"
+                   aria-orientation="horizontal"></div>
+            </div>
+
+            <!-- Reused exported asset: eclipse-duration double arrow (shape 209).
+                 Spans 70% of the canvas, centered, matching the plotted eclipse. -->
+            <div class="sim-eclipse-arrow-cell">
+              <img id="eclipse-arrow" src="assets/shapes/209.svg" alt="" class="sim-eclipse-arrow">
+            </div>
+
+            <p id="eclipse-time-field" class="sim-eclipse-time"></p>
+          </div>
+
+          <div class="sim-lc-controls">
+            <div class="sim-lc-controls__left">
+              <div class="control-choice">
+                <input type="checkbox" id="show-curve-check" checked>
+                <label for="show-curve-check">show theoretical curve</label>
+              </div>
+              <div class="control-choice">
+                <input type="checkbox" id="show-measurements-check">
+                <label for="show-measurements-check">show simulated measurements</label>
+              </div>
+              <div id="noise-slider" class="sim-slider-mount"></div>
+              <div id="number-slider" class="sim-slider-mount"></div>
+            </div>
+
+            <div class="sim-lc-controls__right">
+              <p class="sim-eclipse-depth-label" id="eclipse-depth-label">eclipse depth:</p>
+              <p class="sim-eclipse-depth-value" id="eclipse-depth-field" aria-labelledby="eclipse-depth-label eclipse-depth-field"></p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ BOTTOM ROW: property panels ============ -->
+    <div class="sim-bottom-row">
+
+      <section class="panel sim-panel" aria-labelledby="planet-heading">
+        <h2 id="planet-heading" class="panel__heading">Planet Properties</h2>
+        <div class="control-fieldset">
+          <div id="planet-mass-slider" class="sim-slider-mount"></div>
+          <div id="planet-radius-slider" class="sim-slider-mount"></div>
+          <div id="separation-slider" class="sim-slider-mount"></div>
+          <div id="eccentricity-slider" class="sim-slider-mount"></div>
+        </div>
+      </section>
+
+      <section class="panel sim-panel" aria-labelledby="star-heading">
+        <h2 id="star-heading" class="panel__heading">Star Properties</h2>
+        <div class="control-fieldset">
+          <div id="star-mass-slider" class="sim-slider-mount"></div>
+          <p id="star-info-field" class="sim-star-info"></p>
+        </div>
+      </section>
+
+      <section class="panel sim-panel" aria-labelledby="orient-heading">
+        <h2 id="orient-heading" class="panel__heading">System Orientation and Phase</h2>
+        <div class="control-fieldset">
+          <div id="inclination-slider" class="sim-slider-mount"></div>
+          <div id="longitude-slider" class="sim-slider-mount"></div>
+          <div id="phase-slider" class="sim-slider-mount"></div>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- Polite live region: announces state changes with units on commit -->
+  <div id="sim-announcer" class="sr-only" aria-live="polite"></div>
+
+</div>
+
+<script src="simulation.js?v=8"></script>
+</body>
+</html>

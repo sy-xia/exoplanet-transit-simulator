@@ -1,0 +1,452 @@
+/* ==========================================================================
+   Exoplanet Transit Simulator — sim-specific styles only.
+   Shared chrome, palette and layout come from foundation/kl-unl.css
+   (never edited). Everything here layers on top of the foundation.
+   ========================================================================== */
+
+/* Larger, zoomable body copy for the sim content (WCAG 1.4.4 floor).
+   The foundation body size is untouched; we scale our own containers. */
+.sim-layout {
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+
+/* The requested panel widths (Planet 370 + Star 310 + System Orientation 321,
+   plus two 1rem gaps = 1033px of content) need a slightly wider shell than the
+   foundation's 62.5rem default. Widening it here lets the top-right (lightcurve)
+   column grow so its right edge stays flush with the System Orientation panel
+   below. Content = max-width − 2 × 0.5rem sim-layout padding = 1033px. */
+.app-shell {
+  max-width: 1049px;
+}
+
+.sim-layout {
+  gap: 1rem;
+  padding: 1rem 0.5rem 1.5rem;
+  /* Override the foundation's 25rem left column so the transit-view panel
+     matches the 370px Planet Properties panel below it; the right column
+     (lightcurve) widens to fill the rest and align with Star + Orientation.
+     The 56rem media rule below restores the single-column collapse. */
+  grid-template-columns: 370px 1fr;
+}
+
+.app-layout__left {
+  gap: 1rem;
+}
+
+.sim-panel {
+  padding-bottom: 0.75rem;
+}
+
+.sim-panel .panel__heading {
+  font-size: 1.2rem;
+}
+
+/* ---------------- Transit visualization panel ---------------- */
+
+/* The black transit view fills the panel edge to edge (no white frame). */
+.sim-vis-panel {
+  padding-bottom: 0;
+}
+
+.sim-vis-wrap {
+  padding: 0;
+}
+
+#vis-canvas {
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  margin: 0;
+  border: 0;
+  touch-action: none; /* the phase cursor lives on the lightcurve; vis is display-only */
+}
+
+/* ---------------- Presets panel ---------------- */
+
+.sim-presets-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.sim-select {
+  flex: 1 1 12rem;
+  min-height: 2.75rem;
+  font-size: 1rem;
+  padding: 0.25rem;
+  color: var(--foreground-color, #1a1a1a);
+  background: var(--background-color, #ffffff);
+  border-width: var(--border-width, 1px);
+  border-style: var(--border-style, solid);
+  border-color: var(--border-color, #767676);
+}
+
+/* Buttons don't inherit font-size, so the "set" button would render at the
+   browser default (~13px). Match it to the sim's body text size. */
+.sim-presets-row .button {
+  font-size: 1.125rem;
+}
+
+#set-preset-button[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ---------------- Lightcurve panel ---------------- */
+
+.sim-lc-body {
+  padding: 1rem 1rem 0;
+}
+
+/* Plot grid: column 1 = y-axis title, column 2 = y tick gutter, column 3 = plot.
+   The arrow and time caption occupy column 3 in rows 2 and 3 so they line up
+   under the canvas. Row 1 height is driven by the canvas, so the tick gutter
+   (which stretches to row 1) matches the canvas height for correct tick %s. */
+.sim-plot-grid {
+  display: grid;
+  grid-template-columns: min-content min-content minmax(0, 400px);
+  grid-template-areas:
+    "ylabel yticks plot"
+    ".      .      arrow"
+    ".      .      time";
+  align-items: stretch;
+  justify-content: center;
+  column-gap: 0.25rem;
+  margin-top: 0.5rem;   /* nudge the plot a little lower within the panel */
+}
+
+.sim-plot-ylabel {
+  grid-area: ylabel;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  align-self: center;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+/* y tick labels rendered in HTML so they scale with browser zoom */
+.sim-plot-yticks {
+  grid-area: yticks;
+  position: relative;
+  width: 3.6rem;
+  font-size: 0.95rem;
+}
+
+.sim-plot-yticks .sim-ytick {
+  position: absolute;
+  right: 0.6rem;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+/* tick marks extend left from the plot edge (majorTickmarkExtent 7 px,
+   minorTickmarkExtent 4 px in the original) */
+.sim-plot-yticks .sim-ytick-mark {
+  position: absolute;
+  right: 0;
+  width: 0.25rem;
+  height: 1px;
+  background: #000000;
+  transform: translateY(-50%);
+}
+
+.sim-plot-yticks .sim-ytick-mark--major {
+  width: 0.44rem;
+}
+
+.sim-plot-wrap {
+  grid-area: plot;
+  position: relative;
+  min-width: 0;
+  line-height: 0;
+}
+
+#lc-canvas {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  aspect-ratio: 400 / 220;
+  touch-action: none; /* phase-cursor drag must not scroll the page */
+}
+
+/* Invisible-but-focusable strip aligned with the phase cursor line.
+   Position/size are set from JS in % of the plot, so it tracks CSS scaling. */
+#lc-cursor-proxy {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 4%;
+  transform: translateX(-50%);
+  cursor: ew-resize;
+}
+
+/* ---------------- Eclipse duration / depth ---------------- */
+
+/* Arrow cell sits in the plot column; the arrow spans 70% of the canvas width,
+   centered, so its ends fall at 15% and 85% — exactly the plotted eclipse edges. */
+.sim-eclipse-arrow-cell {
+  grid-area: arrow;
+  text-align: center;
+  margin-top: 0.25rem;
+}
+
+.sim-eclipse-arrow {
+  display: inline-block;
+  width: 70%;
+  max-width: 100%;
+  height: auto;
+  vertical-align: top;
+}
+
+.sim-eclipse-time {
+  grid-area: time;
+  text-align: center;
+  margin: 0.2rem 0 0;
+}
+
+.sim-lc-controls {
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.sim-lc-controls__left {
+  flex: 1 1 20rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.sim-lc-controls__right {
+  flex: 0 0 auto;
+  min-width: 10rem;
+  border-left: 1px solid #cccccc; /* separator line, as in the original (shape 208) */
+  padding-left: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.sim-eclipse-depth-label {
+  margin: 0;
+}
+
+.sim-eclipse-depth-value {
+  margin: 0.5rem 0 0;
+}
+
+/* ---------------- Star info text ---------------- */
+
+.sim-star-info {
+  /* The source string keeps the original's \n characters verbatim, but they
+     collapse to spaces here so the sentence flows and wraps naturally instead
+     of being forced onto four lines. */
+  white-space: normal;
+  text-align: center;
+  margin: 1rem 0 0.25rem;
+}
+
+/* ==========================================================================
+   Custom accessible slider component (built here, NOT in the foundation,
+   per hard rule 9). Reproduces the original Standard Slider v6 behavior:
+   label / numeric field / track+thumb / units, with full keyboard support.
+   ========================================================================== */
+
+.sim-slider {
+  display: grid;
+  /* per-panel column widths (see the id groups below) keep the label, field,
+     units and track edges aligned down each panel */
+  grid-template-columns: var(--slider-label-w, auto) var(--slider-field-w, 4.4rem) var(--slider-units-w, auto) minmax(3rem, 1fr);
+  grid-template-areas: "label field units track";
+  align-items: center;
+  gap: 0.35rem 0.45rem;
+  margin-bottom: 0.6rem;
+}
+
+/* Shared label/units column widths per panel so equal-purpose boxes align */
+#planet-mass-slider, #planet-radius-slider, #separation-slider, #eccentricity-slider {
+  --slider-label-w: 7.6rem;
+  --slider-units-w: 2.4rem;
+}
+
+#star-mass-slider {
+  --slider-label-w: 3.4rem;
+  --slider-units-w: 2.6rem;
+}
+
+#inclination-slider, #longitude-slider, #phase-slider {
+  --slider-label-w: 5.8rem;
+  --slider-units-w: 0.9rem;
+}
+
+#noise-slider, #number-slider {
+  --slider-label-w: 4.6rem;
+  --slider-units-w: 0px;
+  --slider-field-w: 5rem;   /* noise can read "0.000010" */
+}
+
+.sim-slider--nofield {
+  grid-template-columns: minmax(6.5rem, auto) 1fr;
+  grid-template-areas: "label track";
+}
+
+.sim-slider__label {
+  grid-area: label;
+  text-align: right;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+.sim-slider__field {
+  grid-area: field;
+  width: 100%;
+  min-height: 1.75rem;
+  font-size: 1rem;
+  text-align: center;
+  padding: 0.2rem 0.25rem;
+  box-sizing: border-box;
+  color: var(--foreground-color, #1a1a1a);
+  background: var(--background-color, #ffffff);
+  border-width: var(--border-width, 1px);
+  border-style: var(--border-style, solid);
+  border-color: var(--border-color, #767676);
+  border-radius: 0.4rem;
+}
+
+.sim-slider__field:disabled {
+  background: #f0f0f0;
+  color: #424242;
+}
+
+.sim-slider__units {
+  grid-area: units;
+  white-space: nowrap;
+}
+
+.sim-slider__track {
+  grid-area: track;
+  position: relative;
+  height: 2.75rem;          /* >= 44 px touch target */
+  min-width: 0;             /* the grid column's minmax() sets the floor */
+  cursor: pointer;
+  touch-action: none;
+}
+
+.sim-slider__bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 0.5rem;
+  border: 1px solid var(--border-color, #767676);
+  border-radius: 0.25rem;
+  background: linear-gradient(#fafafa, #d0d0d0);
+}
+
+.sim-slider__thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 0.8rem;
+  height: 1.5rem;
+  border: 1px solid var(--border-color, #767676);
+  border-radius: 0.4rem;
+  background: linear-gradient(90deg, #e0e0e0, #f5f4f4, #e0e0e0);
+  cursor: ew-resize;
+}
+
+.sim-slider--disabled .sim-slider__track {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.sim-slider--disabled .sim-slider__thumb {
+  cursor: default;
+}
+
+/* ---------------- Bottom row of property panels ---------------- */
+
+.sim-bottom-row {
+  grid-column: 1 / -1;
+  display: grid;
+  /* Planet 370px (aligned with the transit-view panel above), Star 310px, and
+     System Orientation taking the rest (1fr = 321px at the 1033px content width).
+     This makes the Planet|Star divider fall under the transit-view|lightcurve
+     divider, and the row's outer edges stay flush with the top row. */
+  grid-template-columns: 370px 310px minmax(0, 1fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.sim-bottom-row .panel,
+.sim-bottom-row .control-fieldset {
+  min-width: 0;
+}
+
+/* ---------------- Responsive: tablet and phone portrait ----------------
+   The foundation's 56rem breakpoint collapses .app-layout to one column;
+   these sim-specific rules carry the layout down to phone portrait. */
+
+/* The fixed 370px / 300px columns only fit at the app-shell's capped content
+   width (~984px, i.e. viewport >= 62.5rem). Below that, collapse to a single
+   column so nothing overflows (this also re-asserts the foundation's collapse,
+   since our base rule overrides it at wider widths). */
+@media (max-width: 62.5rem) {
+  .sim-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sim-bottom-row {
+    grid-template-columns: 1fr;
+  }
+
+  .sim-plot-grid {
+    justify-content: start;
+  }
+}
+
+@media (max-width: 34rem) {
+  .sim-layout {
+    padding: 0.75rem 0.25rem 1rem;
+  }
+
+  .sim-slider {
+    grid-template-columns: auto 5.2rem auto;
+    grid-template-areas:
+      "label field units"
+      "track track track";
+  }
+
+  .sim-slider--nofield {
+    grid-template-columns: auto;
+    grid-template-areas:
+      "label"
+      "track";
+  }
+
+  .sim-slider__label {
+    text-align: left;
+  }
+
+  .sim-lc-controls__right {
+    border-left: 0;
+    border-top: 1px solid #cccccc;
+    padding-left: 0;
+    padding-top: 0.75rem;
+    min-width: 100%;
+  }
+
+  .sim-plot-yticks {
+    width: 3rem;
+    font-size: 0.85rem;
+  }
+}
