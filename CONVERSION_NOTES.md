@@ -133,9 +133,16 @@ description is kept verbatim as prose, exactly as the original displayed it.
 2. **Colors remapped for WCAG 1.4.11 contrast** (details in ACCESSIBILITY.md):
    theoretical curve 0x6699FF → #5588EE; phase cursor 0xEE9090/0xFF5050 →
    #C05050/#E03030; measurement dots 0x999999 → #767676; orbit-path alpha 50 % → 70 %.
-3. **Sliders** gain Page Up/Down (10 ticks) and Home/End keys beyond the original's
-   Left/Right — an accessibility requirement; Left/Right still move exactly one
-   original value tick.
+3. **Slider keyboard stepping**: the original moved exactly one internal tick per
+   Left/Right press. That is unusable for the high-precision sliders (inclination's
+   tick is 0.001°, i.e. 180,000 presses to cross its range), so arrow steps are
+   scaled to cross the full range in roughly 150 presses (inclination 1°, longitude
+   2°, star mass 0.01 M_sun, etc.; the log sliders step proportionally). Page
+   Up/Down move 10 steps and Home/End jump to min/max. **Shift+Arrow restores the
+   original single-tick granularity**, and the numeric field still accepts an exact
+   value, so no value reachable in the original is lost. The bar click-and-hold
+   auto-repeat is scaled by the same factor for the same reason. Pointer dragging
+   is unchanged and still snaps exactly as the AS did.
 4. **Slider field blur**: the original reverted a typed value if the pointer was
    over the slider bar when focus left the field; the port always commits on
    Enter/blur (invalid input resyncs the display). Practical behavior is identical.

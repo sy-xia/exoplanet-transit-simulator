@@ -401,6 +401,26 @@
   var CONTINUOUS_CHANGE_DELAY = 500;  // ms, from Standard Slider v6
   var CONTINUOUS_CHANGE_RATE = 0.05;  // ticks per ms, from Standard Slider v6
 
+  // Roughly how many arrow presses should cross a slider's whole range.
+  // The original moved exactly ONE internal tick per arrow press, which is
+  // unusable on the high-precision sliders (inclination's tick is 0.001 deg, so
+  // 0-180 would need 180,000 presses). Arrow steps are scaled to this target
+  // instead; Shift+Arrow still gives the original single-tick fine control.
+  var TARGET_ARROW_PRESSES = 150;
+
+  // Round a raw step up/down to a tidy 1 / 2 / 5 x 10^n value.
+  function niceStep(x) {
+    if (!(x > 0) || !isFinite(x)) { return 0; }
+    var mag = Math.pow(10, Math.floor(Math.log(x) / LN10));
+    var norm = x / mag;
+    var nice;
+    if (norm < 1.5) { nice = 1; }
+    else if (norm < 3.5) { nice = 2; }
+    else if (norm < 7.5) { nice = 5; }
+    else { nice = 10; }
+    return nice * mag;
+  }
+
   function SimSlider(mountId, opts) {
     var self = this;
     this.opts = opts;
@@ -417,6 +437,9 @@
       maxParameter: PARAM_MAX,
       value: opts.initValue
     });
+
+    // Ticks moved by one arrow press (see TARGET_ARROW_PRESSES above).
+    this.arrowTicks = this.computeArrowTicks();
 
     // --- DOM ---
     var mount = document.getElementById(mountId);
@@ -518,8 +541,10 @@
       thumb.focus();
       var c = self.controller;
       var mValue = c.getValueObjectFromValue(c.getValueFromParameter(self.paramFromEvent(e))).value;
-      if (mValue < c.value) { self.incrementValue(-1, true); }
-      else if (mValue > c.value) { self.incrementValue(1, true); }
+      // Nudge by one arrow step (not one raw tick) so a single click on the bar
+      // is visible on the high-precision sliders too.
+      if (mValue < c.value) { self.incrementValue(-self.arrowTicks, true); }
+      else if (mValue > c.value) { self.incrementValue(self.arrowTicks, true); }
       track.setPointerCapture(e.pointerId);
       barHold = {
         timeLast: performance.now(),
@@ -531,7 +556,9 @@
         if (!barHold) { return; }
         var timeNow = performance.now();
         if (timeNow > barHold.waitTime) {
-          var ticks = CONTINUOUS_CHANGE_RATE * (timeNow - barHold.timeLast);
+          // Scaled by arrowTicks for the same reason: the original's flat rate
+          // of 0.05 ticks/ms would crawl on the high-precision sliders.
+          var ticks = CONTINUOUS_CHANGE_RATE * self.arrowTicks * (timeNow - barHold.timeLast);
           var c2 = self.controller;
           var mValueObj = c2.getValueObjectFromValue(c2.getValueFromParameter(self.paramFromClientX(barHold.clientX)));
           if (mValueObj.value < c2.value) {
@@ -568,20 +595,23 @@
       if (!self.userEnabled) { return; }
       var c = self.controller;
       var handled = true;
+      // Shift+Arrow drops back to a single tick for fine adjustment.
+      var step = e.shiftKey ? 1 : self.arrowTicks;
+      var pageStep = self.arrowTicks * 10;
       switch (e.key) {
         case 'ArrowLeft':
         case 'ArrowDown':
-          self.setValueByValueObject(c.getIncrementedValueObject(null, -1), true);
+          self.setValueByValueObject(c.getIncrementedValueObject(null, -step), true);
           break;
         case 'ArrowRight':
         case 'ArrowUp':
-          self.setValueByValueObject(c.getIncrementedValueObject(null, 1), true);
+          self.setValueByValueObject(c.getIncrementedValueObject(null, step), true);
           break;
         case 'PageDown':
-          self.setValueByValueObject(c.getIncrementedValueObject(null, -10), true);
+          self.setValueByValueObject(c.getIncrementedValueObject(null, -pageStep), true);
           break;
         case 'PageUp':
-          self.setValueByValueObject(c.getIncrementedValueObject(null, 10), true);
+          self.setValueByValueObject(c.getIncrementedValueObject(null, pageStep), true);
           break;
         case 'Home':
           self.setValue(self.opts.minValue, true);
@@ -618,6 +648,23 @@
     this.updateSynchronization();
     this.setUserEnabled(this.userEnabled);
   }
+
+  // How many internal ticks one arrow press should move, so that crossing the
+  // full range takes about TARGET_ARROW_PRESSES presses.
+  SimSlider.prototype.computeArrowTicks = function () {
+    var c = this.controller;
+    if (c._pMode === 1) {
+      // "fixed digits": every tick is an absolute step of _minIncrement, so pick
+      // a tidy value step (never finer than one tick) and convert it to ticks.
+      var step = niceStep((c._maxV - c._minV) / TARGET_ARROW_PRESSES);
+      if (!(step > c._minIncrement)) { step = c._minIncrement; }
+      return Math.max(1, Math.round(step / c._minIncrement));
+    }
+    // "significant digits": steps are proportional, and one decade spans
+    // _ticksPerMag ticks, so scale by how many decades the range covers.
+    var decades = Math.log(c._maxV / c._minV) / LN10;
+    return Math.max(1, Math.round(c._ticksPerMag * decades / TARGET_ARROW_PRESSES));
+  };
 
   SimSlider.prototype.paramFromClientX = function (clientX) {
     var rect = this.track.getBoundingClientRect();

@@ -21,7 +21,24 @@ About with managed dialog focus and Escape handling).
 
 | Control | Keys |
 | --- | --- |
-| All nine sliders (custom component, `role="slider"`) | Tab to focus thumb; ←/↓ −1 value tick, →/↑ +1 tick (identical increments to the Flash slider), PageDown/PageUp ±10 ticks, Home/End min/max. Numeric field: type + Enter (or blur) to commit. |
+| All nine sliders (custom component, `role="slider"`) | Tab to focus thumb; ←/↓ and →/↑ move one step, PageDown/PageUp ±10 steps, Home/End min/max. **Shift+Arrow** drops to a single internal tick for fine adjustment (the original Flash granularity). Numeric field: type + Enter (or blur) to commit. |
+
+Arrow step sizes are scaled so one press is a usable amount and the full range
+takes roughly 150 presses. The original Flash moved exactly one internal tick per
+press, which is unusable for the high-precision sliders — inclination's tick is
+0.001°, so crossing 0–180° would have needed 180,000 presses. Resulting steps:
+
+| Slider | Arrow step | Slider | Arrow step |
+| --- | --- | --- | --- |
+| Planet mass | ~0.03 M_jup (proportional) | Star mass | 0.01 M_sun |
+| Planet radius | ~0.14 R_jup (proportional) | Inclination | 1° |
+| Semimajor axis | ~0.0013 AU (proportional) | Longitude | 2° |
+| Eccentricity | 0.01 | Phase | 0.01 |
+| Noise | proportional (3 ticks) | Number | 2 measurements |
+
+The three logarithmic sliders (planet mass, planet radius, semimajor axis) and
+noise step proportionally, so the absolute step grows with the value. Exact
+values remain reachable via Shift+Arrow or by typing into the numeric field.
 | Lightcurve phase cursor (draggable red line) | In tab order as `role="slider"` ("Lightcurve phase cursor"); click/tap also focuses it. ←/↓ −0.01, →/↑ +0.01, PageUp/Down ±0.1, Home/End ends of the plotted window. Same state as the "phase:" slider. |
 | Checkboxes, preset select, set button, masthead buttons | Native semantics. |
 
